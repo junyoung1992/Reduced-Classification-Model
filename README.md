@@ -1,1 +1,1 @@
-# ReducedClassificationModel
+# Reduced Classification Model
