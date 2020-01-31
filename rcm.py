@@ -6,20 +6,22 @@ from lib.compress.filterpruning import iterative_pruning as ifp
 
 from torch import optim, nn
 
-import csv
-import numpy as np
 import argparse
+import csv
+import os
+import numpy as np
 import torch
 
 def train_baseline(option):
+    _save_name = option["save_name"]
     if option["model"] == "VGG16":
         model = models.VGG(layers=16)
     elif option["model"] == "VGG11":
         model = models.VGG(layers=11)
     elif option["model"] == "MobileNet":
         model = models.MobileNet(alpha=option["alpha"])
-        save_name = option["save_name"] + "x{:n}".format(option["alpha"])
-    save_name = save_name + "_baseline"
+        _save_name = _save_name + "x{:n}".format(option["alpha"])
+    save_name = _save_name + "_baseline"
     
     train_dl = load_cifar10("train", 1, 1, option["batch"]) # (train_dl, valid_dl)
     test_dl = load_cifar10("test", 1, 1, option["batch"])
@@ -33,22 +35,24 @@ def train_baseline(option):
     result = evaluate(model, test_dl)
 
 def train_rcm(option):
-    classification = 10 / option["rcm"]
+    _save_name = option["save_name"]
     if option["model"] == "VGG16":
-        model = [models.VGG(layers=16, classification=classification) for _ in range(option["rcm"])]
+        model = [models.VGG(layers=16, classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "VGG11":
-        model = [models.VGG(layers=11, classification=classification) for _ in range(option["rcm"])]
+        model = [models.VGG(layers=11, classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "MobileNet":
-        model = [models.MobileNet(alpha=option["alpha"], classification=classification) for _ in range(option["rcm"])]
-        save_name = option["save_name"] + "x{:n}".format(option["alpha"])
-    save_name = save_name + "_rcm_{:d}".format(option["rcm"])
+        model = [models.MobileNet(alpha=option["alpha"], classification=10) for _ in range(option["rcm"])]
+        _save_name = _save_name + "x{:n}".format(option["alpha"])
+    _save_name = _save_name + "_rcm{:d}".format(option["rcm"])
 
     train_dl = [load_cifar10("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])] # ([train_dl[0], ...], [valid_dl[0], ...])
     test_dl = load_cifar10("test", 1, 1, 32)
 
-    load_model = torch.load(option["model_path"], map_location=option["dev"])
+    load_model = torch.load(option["model_path"][0], map_location=option["dev"])
 
     for i in range(option["rcm"]):
+        classification = int(10 / option["rcm"]) + 1
+
         model[i].load_state_dict(load_model["state_dict"])
         last_in_features = model[i].classifier[-1].in_features
         model[i].classifier[-1] = nn.Linear(in_features=last_in_features, out_features=classification)
@@ -57,8 +61,8 @@ def train_rcm(option):
         loss_fn = nn.CrossEntropyLoss()
         opt = optim.Adam(model[i].parameters(), lr=option["lr"])
 
-        save_name = save_name + "_{:d}".format(i + 1)
-        history = fit(model[i], train_dl[0][i], train_dl[1][i], loss_fn, opt, option["epoch"], option["schedule"], save_name, option["save_option"])
+        save_name = _save_name + "_{:d}".format(i + 1)
+        history = fit(model[i], train_dl[i][0], train_dl[i][1], loss_fn, opt, option["epoch"], option["schedule"], save_name, option["save_option"])
     
     result = distributed_evaluate(model, test_dl)
 
@@ -101,23 +105,23 @@ def prune_vgg_baseline(option):
         model = models.VGG(layers=16)
     elif option["model"] == "VGG11":
         model = models.VGG(layers=11)
-    save_name = save_name + "_fp_baseline"
+    _save_name = option["save_name"] + "_fp_baseline"
 
     train_dl = load_cifar10("train", 1, 1, 32)  # (train_dl, valid_dl)
     test_dl = load_cifar10("test", 1, 1, 32)
     
-    load_model = torch.load(option["model_path"], map_location=option["dev"])
+    load_model = torch.load(option["model_path"][0], map_location=option["dev"])
     model._modules = load_model['_modules']
     model.load_state_dict(load_model['state_dict'])
     model = model.to(option["dev"])
 
-    csv_name = save_name
+    csv_name = _save_name
     write_pruning_result(model, test_dl, option["rcm"], 0, csv_name)
 
     compressor = fp(model)
 
     for i in range(option["prune_step"]):
-        save_name = save_name + "_{:03d}".format(i + 1)
+        save_name = _save_name + "_{:03d}".format(i + 1)
 
         history = ifp(Pruning=compressor, model=model, one_epoch_remove=option["filters_removed"], finetuning=option["finetuning"],
                       train_dl=train_dl[0], valid_dl=train_dl[1], epoch=option["epoch"], lr=option["lr"],
@@ -144,12 +148,12 @@ def prune_vgg_baseline(option):
         write_pruning_result(model, test_dl, option["rcm"], i + 1, csv_name)
 
 def prune_vgg_rcm(option):
-    classification = 10 / option["rcm"]
+    classification = int(10 / option["rcm"]) + 1
     if option["model"] == "VGG16":
-        model = [models.VGG(layer=16, classification=classification) for _ in range(option["rcm"])]
+        model = [models.VGG(layers=16, classification=classification) for _ in range(option["rcm"])]
     elif option["model"] == "VGG11":
-        model = [models.VGG(layer=11, classification=classification) for _ in range(option["rcm"])]
-    save_name = option["save_name"] + "_fp_rcm_{:d}".format(option["rcm"])
+        model = [models.VGG(layers=11, classification=classification) for _ in range(option["rcm"])]
+    _save_name = option["save_name"] + "_fp_rcm{:d}".format(option["rcm"])
 
     i = 0
     for m in model:
@@ -162,7 +166,7 @@ def prune_vgg_rcm(option):
     train_dl = [load_cifar10("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])] # ([train_dl[0], ...], [valid_dl[0], ...])
     test_dl = load_cifar10("test", 1, 1, 32)
 
-    csv_name = save_name
+    csv_name = _save_name
     write_pruning_result(model, test_dl, option["rcm"], 0, csv_name)
 
     compressor = [fp(m) for m in model]
@@ -171,7 +175,7 @@ def prune_vgg_rcm(option):
         print("Filter Pruning #{:d}".format(i + 1))
         for j in range(option["rcm"]):
             print("Reduced Classification model #{:d}".format(j + 1))
-            save_name = save_name + "_{:03d}_{:d}".format(i + 1, j + 1)
+            save_name = _save_name + "_{:03d}_{:d}".format(i + 1, j + 1)
 
             history = ifp(Pruning=compressor[j], model=model[j], one_epoch_remove=option["filters_removed"], finetuning=option["finetuning"],
                           train_dl=train_dl[j][0], valid_dl=train_dl[j][1], epoch=option["epoch"], lr=option["lr"],
