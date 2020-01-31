@@ -68,6 +68,8 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
     # If model is changed, you revise this part.
     # This pruning works only for my VGG16.
     #
+    dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
     layer_list, layer_structure_count = vgg16_layer_list(model)
 
     conv = layer_list[layer_index]
@@ -93,14 +95,14 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
     new_weights[:filter_index, :, :, :] = old_weights[: filter_index, :, :, :]
     new_weights[filter_index : , :, :, :] = old_weights[filter_index + 1 :, :, :, :]
     new_conv.weight.data = torch.from_numpy(new_weights)
-    new_conv.weight.data = new_conv.weight.cuda()
+    new_conv.weight.data = new_conv.weight.to(dev)
 
     old_bias = conv.bias.data.cpu().numpy()
     new_bias = new_conv.bias.data.cpu().numpy()
     new_bias[: filter_index] = old_bias[: filter_index]
     new_bias[filter_index :] = old_bias[filter_index + 1 :]
     new_conv.bias.data = torch.from_numpy(new_bias)
-    new_conv.bias.data = new_conv.bias.cuda()
+    new_conv.bias.data = new_conv.bias.to(dev)
 
     #
     # If model is changed, you revise this part.
@@ -140,10 +142,10 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
         new_weights[:, : filter_index, :, :] = old_weights[:, : filter_index, :, :]
         new_weights[: , filter_index :, :, :] = old_weights[:, filter_index + 1 :, :, :]
         next_new_conv.weight.data = torch.from_numpy(new_weights)
-        next_new_conv.weight.data = next_new_conv.weight.cuda()
+        next_new_conv.weight.data = next_new_conv.weight.to(dev)
 
         next_new_conv.bias.data = next_conv.bias.data
-        next_new_conv.bias.data = next_new_conv.bias.cuda()
+        next_new_conv.bias.data = next_new_conv.bias.to(dev)
 
         #
         # If model is changed, you revise this part.
@@ -187,10 +189,10 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
         new_weights[:, : filter_index * params_per_input_channel] = old_weights[:, : filter_index * params_per_input_channel]
         new_weights[:, filter_index * params_per_input_channel :] = old_weights[:, (filter_index + 1) * params_per_input_channel :]
         new_linear.weight.data = torch.from_numpy(new_weights)
-        new_linear.weight.data = new_linear.weight.cuda()
+        new_linear.weight.data = new_linear.weight.to(dev)
 
         new_linear.bias.data = old_linear.bias.data
-        new_linear.bias.data = new_linear.bias.cuda()
+        new_linear.bias.data = new_linear.bias.to(dev)
 
         model.classifier[0] = new_linear
 
@@ -276,6 +278,8 @@ class Pruning():
         return x, activation_index, layer_count
     
     def compute_rank(self, grad):
+        dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
         activation_index = len(self.activations) - self.grad_index - 1
         activation = self.activations[activation_index]
 
@@ -284,18 +288,20 @@ class Pruning():
 
         if activation_index not in self.filter_ranks:
             self.filter_ranks[activation_index] = torch.FloatTensor(activation.size(1)).zero_()
-            self.filter_ranks[activation_index] = self.filter_ranks[activation_index].cuda()
+            self.filter_ranks[activation_index] = self.filter_ranks[activation_index].to(dev)
 
         self.filter_ranks[activation_index] += taylor
         self.grad_index += 1
 
     def search(self, train_dl):
+        dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
         self.model.train()
         loss_fn = nn.CrossEntropyLoss()
 
         for xb, yb in train_dl:
-            xb = xb.cuda()
-            yb = yb.cuda()
+            xb = xb.to(dev)
+            yb = yb.to(dev)
 
             self.model.zero_grad()
 

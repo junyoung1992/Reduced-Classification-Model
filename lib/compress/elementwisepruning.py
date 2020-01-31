@@ -96,6 +96,8 @@ class Pruning():
         return threshold
 
     def prune(self, threshold):
+        dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
         index = 0
         dropout_index = 0
 
@@ -108,11 +110,11 @@ class Pruning():
             if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
                 # use a byteTensor to represent the mask and convert it to a floatTensor for multiplication
                 weight_mask = layer.weight.data.cpu().abs() >= threshold
-                weight_mask = weight_mask.to(dtype=torch.float).cuda()
+                weight_mask = weight_mask.to(dtype=torch.float).to(dev)
                 self.weight_masks[index] = weight_mask
 
                 bias_mask = torch.ones(layer.bias.data.size())
-                bias_mask = bias_mask.cuda()
+                bias_mask = bias_mask.to(dev)
                 for i in range(bias_mask.size(0)):
                     if len(torch.nonzero(weight_mask[i]).size()) == 0:
                         bias_mask[i] = 0
