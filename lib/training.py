@@ -183,7 +183,8 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
     elif save_toggle and (save_mode == "all"):
         print('Save {} models'.format(save_mode))
         print('\treturn: last epoch')
-        
+    print()
+
     return {
         "train": (train_loss, train_acc, train_f1),
         "valid": (valid_loss, valid_acc, valid_f1),
