@@ -134,14 +134,14 @@ def load_cifar10(dataset_type, distribution, partition, batch_size):
                 if target == (partition - 1):
                     labels += [torch.tensor(0)]
                 else:
-                    labels += [torch.tensor(2)]
+                    labels += [torch.tensor(1)]
             cifar10_train.targets = torch.as_tensor(labels)
             
             for target in cifar10_valid.targets:
                 if target == (partition - 1):
                     labels += [torch.tensor(0)]
                 else:
-                    labels += [torch.tensor(2)]
+                    labels += [torch.tensor(1)]
             cifar10_valid.targets = torch.as_tensor(labels)
 
         train_idx, valid_idx = indices[:split], indices[split:]
@@ -212,7 +212,7 @@ def load_cifar10(dataset_type, distribution, partition, batch_size):
                 if target == (partition - 1):
                     labels += [torch.tensor(0)]
                 else:
-                    labels += [torch.tensor(2)]
+                    labels += [torch.tensor(1)]
             cifar10_test.targets = torch.as_tensor(labels)
         
         test_loader = torch.utils.data.DataLoader(cifar10_test, batch_size=batch_size, shuffle=False)
