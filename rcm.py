@@ -186,16 +186,16 @@ def prune_vgg_rcm(option):
                     if not(os.path.isdir("analysis")):
                         os.makedirs(os.path.join("analysis"))
 
-                with open('./analysis/{}_{:d}_train_loss.csv'.format(csv_name, i + 1), 'a', newline='') as csvfile:
+                with open('./analysis/{}_{:d}_train_loss.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
                     training_file = csv.writer(csvfile)
                     training_file.writerows([history['train'][0]])
-                with open('./analysis/{}_{:d}_train_acc.csv'.format(csv_name, i + 1), 'a', newline='') as csvfile:
+                with open('./analysis/{}_{:d}_train_acc.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
                     training_file = csv.writer(csvfile)
                     training_file.writerows([history['train'][1]])
-                with open('./analysis/{}_{:d}_valid_loss.csv'.format(csv_name, i + 1), 'a', newline='') as csvfile:
+                with open('./analysis/{}_{:d}_valid_loss.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
                     validation_file = csv.writer(csvfile)
                     validation_file.writerows([history['valid'][0]])
-                with open('./analysis/{}_{:d}_valid_acc.csv'.format(csv_name, i + 1), 'a', newline='') as csvfile:
+                with open('./analysis/{}_{:d}_valid_acc.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
                     validation_file = csv.writer(csvfile)
                     validation_file.writerows([history['valid'][1]])
 

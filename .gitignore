@@ -13,8 +13,12 @@ __pycache__/
 # Save Directory
 analysis/
 log/
-save_model/
+save_models/
+data/
 
 # script
 *.sh
 *.out
+
+# vscode
+.vscode
