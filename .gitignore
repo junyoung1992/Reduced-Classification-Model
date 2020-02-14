@@ -11,10 +11,10 @@ __pycache__/
 .ipynb_checkpoints
 
 # Save Directory
-analysis/
-log/
-save_models/
-data/
+analysis
+log
+save_models
+data
 
 # script
 *.sh
@@ -22,3 +22,6 @@ data/
 
 # vscode
 .vscode
+
+# test
+test.py

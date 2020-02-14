@@ -75,8 +75,10 @@ def load_cifar10(dataset_type, distribution, partition, batch_size):
                     labels += [torch.tensor(2)]
                 elif target == p[3]:
                     labels += [torch.tensor(3)]
-                else:
+                elif target == p[4]:
                     labels += [torch.tensor(4)]
+                else:
+                    labels += [torch.tensor(5)]
             cifar10_train.targets = torch.as_tensor(labels)
             
             for target in cifar10_valid.targets:
@@ -88,8 +90,10 @@ def load_cifar10(dataset_type, distribution, partition, batch_size):
                     labels += [torch.tensor(2)]
                 elif target == p[3]:
                     labels += [torch.tensor(3)]
-                else:
+                elif target == p[4]:
                     labels += [torch.tensor(4)]
+                else:
+                    labels += [torch.tensor(5)]
             cifar10_valid.targets = torch.as_tensor(labels)
 
         elif distribution == 5:
@@ -126,7 +130,7 @@ def load_cifar10(dataset_type, distribution, partition, batch_size):
             cifar10_valid.targets = torch.as_tensor(labels)
 
         elif distribution == 10:
-            if 0 < partition < 11:
+            if (0 < partition < 11) == False:
                 print("Partition Error!!")
                 return
             
@@ -175,8 +179,10 @@ def load_cifar10(dataset_type, distribution, partition, batch_size):
                     labels += [torch.tensor(2)]
                 elif target == p[3]:
                     labels += [torch.tensor(3)]
-                else:
+                elif target == p[4]:
                     labels += [torch.tensor(4)]
+                else:
+                    labels += [torch.tensor(5)]
             cifar10_test.targets = torch.as_tensor(labels)
 
         elif distribution == 5:
@@ -204,7 +210,7 @@ def load_cifar10(dataset_type, distribution, partition, batch_size):
             cifar10_test.targets = torch.as_tensor(labels)
 
         elif distribution == 10:
-            if 0 < partition < 11:
+            if (0 < partition < 11) == False:
                 print("Partition Error!!")
                 return
             

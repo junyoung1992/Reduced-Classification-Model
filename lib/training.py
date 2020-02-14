@@ -221,6 +221,7 @@ def evaluate(model, dl):
     print('Evaluation complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     print('\ttest Acc: {:.2f}% ({:d}/{:d})'.format(acc * 100, corrects, dataset_size))
     print("\ttest F1 Score: {:f}".format(f1score))
+    print()
     
     return {
         "acc": acc,
@@ -272,6 +273,7 @@ def distributed_evaluate(models, dl):
 
     print("\tTest Acc: {:.2f}%".format(acc * 100))
     print("\tTest F1 Score: {:f}".format(f1score))
+    print()
 
     return {
         "acc": acc,

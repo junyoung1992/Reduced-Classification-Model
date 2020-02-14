@@ -8,18 +8,18 @@ class LeNet5(nn.Module):
         
         self.features = nn.Sequential(
             nn.Conv2d(1, 6, kernel_size=5),
-            nn.ReLU(inplace=True),
+            nn.Tanh(),
             nn.AvgPool2d(kernel_size=2),
             nn.Conv2d(6, 16, kernel_size=5),
-            nn.ReLU(inplace=True),
+            nn.Tanh(),
             nn.AvgPool2d(kernel_size=2),
+            nn.Conv2d(16, 120, kernel_size=5),
+            nn.Tanh(),
         )
         
         self.classifier = nn.Sequential(
-            nn.Linear(16*5*5, 120),
-            nn.ReLU(inplace=True),
             nn.Linear(120, 84),
-            nn.ReLU(inplace=True),
+            nn.Tanh(),
             nn.Linear(84, classification),
         )
     
