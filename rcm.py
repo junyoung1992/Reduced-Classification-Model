@@ -18,20 +18,21 @@ def train_baseline(option):
     _save_name = option["save_name"]
     if option["model"] == "VGG16":
         model = models.VGG(layers=16)
-    elif option["model"] == "VGG11":
-        model = models.VGG(layers=11)
     elif option["model"] == "MobileNet":
         model = models.MobileNet(alpha=option["alpha"])
-        _save_name = _save_name + "x{:n}".format(option["alpha"])
+        if option["alpha"] == 1.0:
+            _save_name = _save_name + "x1.0"
+        else:
+            _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = models.LeNet5()
     save_name = _save_name + "_baseline"
     
     if option["model"] == "LeNet5":
-        train_dl = load_mnist("train", 1, 1, option["batch"])
+        train_dl = load_mnist("train", 1, 1, option["batch"])    # (train_dl, valid_dl)
         test_dl = load_mnist("test", 1, 1, option["batch"])
     else:
-        train_dl = load_cifar10("train", 1, 1, option["batch"]) # (train_dl, valid_dl)
+        train_dl = load_cifar10("train", 1, 1, option["batch"])
         test_dl = load_cifar10("test", 1, 1, option["batch"])
 
     model = model.to(option["dev"])
@@ -46,11 +47,12 @@ def train_rcm(option):
     _save_name = option["save_name"]
     if option["model"] == "VGG16":
         model = [models.VGG(layers=16, classification=10) for _ in range(option["rcm"])]
-    elif option["model"] == "VGG11":
-        model = [models.VGG(layers=11, classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "MobileNet":
         model = [models.MobileNet(alpha=option["alpha"], classification=10) for _ in range(option["rcm"])]
-        _save_name = _save_name + "x{:n}".format(option["alpha"])
+        if option["alpha"] == 1.0:
+            _save_name = _save_name + "x1.0"
+        else:
+            _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=10) for _ in range(option["rcm"])]
     _save_name = _save_name + "_rcm{:d}".format(option["rcm"])
@@ -116,15 +118,23 @@ def write_pruning_result(model, test_dl, rcm, sequence, save_name):
         acc_file = csv.writer(csvfile)
         acc_file.writerow([sequence, float(result["acc"]), float(result["f1score"])])
 
-def prune_vgg_baseline(option):
+def prune_baseline(option):
+    _save_name = option["save_name"]
     if option["model"] == "VGG16":
         model = models.VGG(layers=16)
-    elif option["model"] == "VGG11":
-        model = models.VGG(layers=11)
-    _save_name = option["save_name"] + "_fp_baseline"
+    elif option["model"] == "MobileNet":
+        model = models.MobileNet(alpha=option["alpha"])
+        _save_name = _save_name + "x{:n}".format(option["alpha"])
+    elif option["model"] == "LeNet5":
+        model = models.LeNet5()
+    save_name = _save_name + "_fp_baseline"
 
-    train_dl = load_cifar10("train", 1, 1, option["batch"])  # (train_dl, valid_dl)
-    test_dl = load_cifar10("test", 1, 1, option["batch"])
+    if option["model"] == "LeNet5":
+        train_dl = load_mnist("train", 1, 1, option["batch"])    # (train_dl, valid_dl)
+        test_dl = load_mnist("test", 1, 1, option["batch"])
+    else:
+        train_dl = load_cifar10("train", 1, 1, option["batch"])
+        test_dl = load_cifar10("test", 1, 1, option["batch"])
     
     load_model = torch.load(option["model_path"][0], map_location=option["dev"])
     model._modules = load_model['_modules']
@@ -134,16 +144,13 @@ def prune_vgg_baseline(option):
     csv_name = _save_name
     write_pruning_result(model, test_dl, option["rcm"], 0, csv_name)
 
-    compressor = fp(model)
-
     for i in range(option["prune_step"]):
         print("Filter Pruning #{:d}".format(i + 1))
 
         save_name = _save_name + "_{:03d}".format(i + 1)
-
-        history = ifp(Pruning=compressor, model=model, one_epoch_remove=option["filters_removed"], finetuning=option["finetuning"],
-                      train_dl=train_dl[0], valid_dl=train_dl[1], epoch=option["epoch"], lr=option["lr"],
-                      save_name=save_name, save_mode=option["save_option"])
+        pruning = Pruning(model, train_dl[0], train_dl[1])
+        history = pruning.iterative_pruning(one_epoch_remove=option["filters_removed"], finetuning=option["finetuning"],
+                                            epoch=option["epoch"], lr=option["lr"], save_name=save_name, save_mode=option["save_option"])
 
         if option["finetuning"]:
             if save_name is not None:
@@ -165,13 +172,19 @@ def prune_vgg_baseline(option):
 
         write_pruning_result(model, test_dl, option["rcm"], i + 1, csv_name)
 
-def prune_vgg_rcm(option):
+def prune_rcm(option):
     classification = int(10 / option["rcm"]) + 1
     if option["model"] == "VGG16":
         model = [models.VGG(layers=16, classification=classification) for _ in range(option["rcm"])]
-    elif option["model"] == "VGG11":
-        model = [models.VGG(layers=11, classification=classification) for _ in range(option["rcm"])]
-    _save_name = option["save_name"] + "_fp_rcm{:d}".format(option["rcm"])
+    elif option["model"] == "MobileNet":
+        model = [models.MobileNet(alpha=option["alpha"], classification=classification) for _ in range(option["rcm"])]
+        if option["alpha"] == 1.0:
+            _save_name = _save_name + "x1.0"
+        else:
+            _save_name = _save_name + "x{:n}".format(option["alpha"])
+    elif option["model"] == "LeNet5":
+        model = [models.LeNet5(classification=classification) for _ in range(option["rcm"])]
+    _save_name = _save_name + "_fp_rcm{:d}".format(option["rcm"])
 
     i = 0
     for m in model:
@@ -181,194 +194,12 @@ def prune_vgg_rcm(option):
         m = m.to(option["dev"])
         i = i + 1
     
-    train_dl = [load_cifar10("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])] # ([train_dl[0], ...], [valid_dl[0], ...])
-    test_dl = load_cifar10("test", 1, 1, option["batch"])
-
-    csv_name = _save_name
-    write_pruning_result(model, test_dl, option["rcm"], 0, csv_name)
-
-    compressor = [fp(m) for m in model]
-
-    for i in range(option["prune_step"]):
-        print("Filter Pruning #{:d}".format(i + 1))
-        for j in range(option["rcm"]):
-            print("Reduced Classification model #{:d}".format(j + 1))
-            save_name = _save_name + "_{:03d}_{:d}".format(i + 1, j + 1)
-
-            history = ifp(Pruning=compressor[j], model=model[j], one_epoch_remove=option["filters_removed"], finetuning=option["finetuning"],
-                          train_dl=train_dl[j][0], valid_dl=train_dl[j][1], epoch=option["epoch"], lr=option["lr"],
-                          save_name=save_name, save_mode=option["save_option"])
-
-            if option["finetuning"]:
-                if save_name is not None:
-                    if not(os.path.isdir("analysis")):
-                        os.makedirs(os.path.join("analysis"))
-
-                with open('./analysis/{}_{:d}_train_loss.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
-                    training_file = csv.writer(csvfile)
-                    training_file.writerows([history['train'][0]])
-                with open('./analysis/{}_{:d}_train_acc.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
-                    training_file = csv.writer(csvfile)
-                    training_file.writerows([history['train'][1]])
-                with open('./analysis/{}_{:d}_valid_loss.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
-                    validation_file = csv.writer(csvfile)
-                    validation_file.writerows([history['valid'][0]])
-                with open('./analysis/{}_{:d}_valid_acc.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
-                    validation_file = csv.writer(csvfile)
-                    validation_file.writerows([history['valid'][1]])
-
-        write_pruning_result(model, test_dl, option["rcm"], i + 1, csv_name)
-
-def prune_mobilenet_baseline(option):
-    model = models.MobileNet(alpha=option["alpha"])
-    _save_name = option["save_name"] + "x{:n}".format(option["alpha"]) + "_baseline"
-
-    train_dl = load_cifar10("train", 1, 1, option["batch"])   # (train_dl, valid_dl)
-    test_dl = load_cifar10("test", 1, 1, option["batch"])
-    
-    load_model = torch.load(option["model_path"][0], map_location=option["dev"])
-    model._modules = load_model['_modules']
-    model.load_state_dict(load_model['state_dict'])
-    model = model.to(option["dev"])
-
-    csv_name = _save_name
-    write_pruning_result(model, test_dl, option["rcm"], 0, csv_name)
-
-    for i in range(option["prune_step"]):
-        print("Filter Pruning #{:d}".format(i + 1))
-
-        save_name = _save_name + "_{:03d}".format(i + 1)
-        pruning = Pruning(model, train_dl[0], train_dl[1])
-        history = pruning.iterative_pruning(one_epoch_remove=option["filters_removed"], finetuning=option["finetuning"],
-                                            epoch=option["epoch"], lr=option["lr"], save_name=save_name, save_mode=option["save_option"])
-
-        if option["finetuning"]:
-            if save_name is not None:
-                if not(os.path.isdir("analysis")):
-                    os.makedirs(os.path.join("analysis"))
-
-            with open('./analysis/{}_train_loss.csv'.format(csv_name), 'a', newline='') as csvfile:
-                training_file = csv.writer(csvfile)
-                training_file.writerows([history['train'][0]])
-            with open('./analysis/{}_train_acc.csv'.format(csv_name), 'a', newline='') as csvfile:
-                training_file = csv.writer(csvfile)
-                training_file.writerows([history['train'][1]])
-            with open('./analysis/{}_valid_loss.csv'.format(csv_name), 'a', newline='') as csvfile:
-                validation_file = csv.writer(csvfile)
-                validation_file.writerows([history['valid'][0]])
-            with open('./analysis/{}_valid_acc.csv'.format(csv_name), 'a', newline='') as csvfile:
-                validation_file = csv.writer(csvfile)
-                validation_file.writerows([history['valid'][1]])
-
-        write_pruning_result(model, test_dl, option["rcm"], i + 1, csv_name)
-
-def prune_mobilenet_rcm(option):
-    classification = int(10 / option["rcm"]) + 1
-    model = [models.MobileNet(alpha=option["alpha"], classification=classification) for _ in range(option["rcm"])]
-    _save_name = option["save_name"] + "x{:n}".format(option["alpha"]) + "_fp_rcm{:d}".format(option["rcm"])
-
-    i = 0
-    for m in model:
-        load_model = torch.load(option["model_path"][i], map_location=option["dev"])
-        m._modules = load_model['_modules']
-        m.load_state_dict(load_model['state_dict'])
-        m = m.to(option["dev"])
-        i = i + 1
-    
-    train_dl = [load_cifar10("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])] # ([train_dl[0], ...], [valid_dl[0], ...])
-    test_dl = load_cifar10("test", 1, 1, option["batch"])
-
-    csv_name = _save_name
-    write_pruning_result(model, test_dl, option["rcm"], 0, csv_name)
-
-    for i in range(option["prune_step"]):
-        print("Filter Pruning #{:d}".format(i + 1))
-        for j in range(option["rcm"]):
-            print("Reduced Classification model #{:d}".format(j + 1))
-            save_name = _save_name + "_{:03d}_{:d}".format(i + 1, j + 1)
-
-            pruning = Pruning(model[j], train_dl[j][0], train_dl[j][1])
-            history = pruning.iterative_pruning(one_epoch_remove=option["filters_removed"], finetuning=option["finetuning"],
-                                                epoch=option["epoch"], lr=option["lr"], save_name=save_name, save_mode=option["save_option"])
-
-            if option["finetuning"]:
-                if save_name is not None:
-                    if not(os.path.isdir("analysis")):
-                        os.makedirs(os.path.join("analysis"))
-
-                with open('./analysis/{}_{:d}_train_loss.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
-                    training_file = csv.writer(csvfile)
-                    training_file.writerows([history['train'][0]])
-                with open('./analysis/{}_{:d}_train_acc.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
-                    training_file = csv.writer(csvfile)
-                    training_file.writerows([history['train'][1]])
-                with open('./analysis/{}_{:d}_valid_loss.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
-                    validation_file = csv.writer(csvfile)
-                    validation_file.writerows([history['valid'][0]])
-                with open('./analysis/{}_{:d}_valid_acc.csv'.format(csv_name, j + 1), 'a', newline='') as csvfile:
-                    validation_file = csv.writer(csvfile)
-                    validation_file.writerows([history['valid'][1]])
-
-        write_pruning_result(model, test_dl, option["rcm"], i + 1, csv_name)
-
-def prune_lenet5_baseline(option):
-    model = models.LeNet5()
-    _save_name = option["save_name"] + "_fp_baseline"
-
-    train_dl = load_mnist("train", 1, 1, option["batch"])   # (train_dl, valid_dl)
-    test_dl = load_mnist("test", 1, 1, option["batch"])
-    
-    load_model = torch.load(option["model_path"][0], map_location=option["dev"])
-    model._modules = load_model['_modules']
-    model.load_state_dict(load_model['state_dict'])
-    model = model.to(option["dev"])
-
-    csv_name = _save_name
-    write_pruning_result(model, test_dl, option["rcm"], 0, csv_name)
-
-    for i in range(option["prune_step"]):
-        print("Filter Pruning #{:d}".format(i + 1))
-
-        save_name = _save_name + "_{:03d}".format(i + 1)
-        pruning = Pruning(model, train_dl[0], train_dl[1])
-        history = pruning.iterative_pruning(one_epoch_remove=option["filters_removed"], finetuning=option["finetuning"],
-                                            epoch=option["epoch"], lr=option["lr"], save_name=save_name, save_mode=option["save_option"])
-
-        if option["finetuning"]:
-            if save_name is not None:
-                if not(os.path.isdir("analysis")):
-                    os.makedirs(os.path.join("analysis"))
-
-            with open('./analysis/{}_train_loss.csv'.format(csv_name), 'a', newline='') as csvfile:
-                training_file = csv.writer(csvfile)
-                training_file.writerows([history['train'][0]])
-            with open('./analysis/{}_train_acc.csv'.format(csv_name), 'a', newline='') as csvfile:
-                training_file = csv.writer(csvfile)
-                training_file.writerows([history['train'][1]])
-            with open('./analysis/{}_valid_loss.csv'.format(csv_name), 'a', newline='') as csvfile:
-                validation_file = csv.writer(csvfile)
-                validation_file.writerows([history['valid'][0]])
-            with open('./analysis/{}_valid_acc.csv'.format(csv_name), 'a', newline='') as csvfile:
-                validation_file = csv.writer(csvfile)
-                validation_file.writerows([history['valid'][1]])
-
-        write_pruning_result(model, test_dl, option["rcm"], i + 1, csv_name)
-
-def prune_lenet5_rcm(option):
-    classification = int(10 / option["rcm"]) + 1
-    model = [models.LeNet5(classification=classification) for _ in range(option["rcm"])]
-    _save_name = option["save_name"] + "_fp_rcm{:d}".format(option["rcm"])
-
-    i = 0
-    for m in model:
-        load_model = torch.load(option["model_path"][i], map_location=option["dev"])
-        m._modules = load_model['_modules']
-        m.load_state_dict(load_model['state_dict'])
-        m = m.to(option["dev"])
-        i = i + 1
-    
-    train_dl = [load_mnist("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])] # ([train_dl[0], ...], [valid_dl[0], ...])
-    test_dl = load_mnist("test", 1, 1, option["batch"])
+    if option["model"] == "LeNet5":
+        train_dl = [load_mnist("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])]   # ([train_dl[0], ...], [valid_dl[0], ...])
+        test_dl = load_mnist("test", 1, 1, option["batch"])
+    else:
+        train_dl = [load_cifar10("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])]
+        test_dl = load_cifar10("test", 1, 1, option["batch"])
 
     csv_name = _save_name
     write_pruning_result(model, test_dl, option["rcm"], 0, csv_name)
@@ -421,20 +252,10 @@ def prune(args):
         prune_step = args.prune_step
     )
 
-    if option["rcm"] == 1:   # Baseline
-        if option["model"] == "VGG16":
-            prune_vgg_baseline(option)
-        elif option["model"] == "MobileNet":
-            prune_mobilenet_baseline(option)
-        elif option["model"] == "LeNet5":
-            prune_lenet5_baseline(option)
-    else:   # Reduced Classification Model
-        if option["model"] == "VGG16":
-            prune_vgg_rcm(option)
-        elif option["model"] == "MobileNet":
-            prune_mobilenet_rcm(option)
-        elif option["model"] == "LeNet5":
-            prune_lenet5_rcm(option)
+    if option["rcm"] == 1:
+        prune_baseline(option)
+    else:
+        prune_rcm(option)
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -443,7 +264,7 @@ def get_args():
     parser.add_argument("--prune", action="store_true")
     parser.add_argument("--rcm", type=int, choices=[1, 2, 5, 10], default="1")
     parser.add_argument("--model_path", type=str, nargs="*")
-    parser.add_argument("--model", choices=['LeNet5', 'VGG11', 'VGG16', 'MobileNet'])
+    parser.add_argument("--model", choices=['LeNet5', 'VGG16', 'MobileNet'])
     parser.add_argument("--alpha", type=float, choices=[1.0, 0.75, 0.5, 0.25], default="1.0")
     parser.add_argument("--batch", type=int, default="32")
     parser.add_argument("--epoch", type=int, default="300")
