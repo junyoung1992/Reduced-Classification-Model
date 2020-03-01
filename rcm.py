@@ -173,6 +173,7 @@ def prune_baseline(option):
         write_pruning_result(model, test_dl, option["rcm"], i + 1, csv_name)
 
 def prune_rcm(option):
+    _save_name = option["save_name"]
     classification = int(10 / option["rcm"]) + 1
     if option["model"] == "VGG16":
         model = [models.VGG(layers=16, classification=classification) for _ in range(option["rcm"])]
