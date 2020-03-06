@@ -127,7 +127,7 @@ def prune_baseline(option):
         _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = models.LeNet5()
-    save_name = _save_name + "_fp_baseline"
+    _save_name = _save_name + "_fp_baseline"
 
     if option["model"] == "LeNet5":
         train_dl = load_mnist("train", 1, 1, option["batch"])    # (train_dl, valid_dl)
