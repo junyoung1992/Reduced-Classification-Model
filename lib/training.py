@@ -1,4 +1,4 @@
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 from torch import nn
 from torch import optim
 from torch.optim.lr_scheduler import MultiStepLR
@@ -215,12 +215,20 @@ def evaluate(model, dl):
 
     time_elapsed = time.time() - since
     
-    acc = (corrects.double() / dataset_size)
-    f1score = f1_score(y_pred, y_true, average='macro')
-    
-    print('Evaluation complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('\ttest Acc: {:.2f}% ({:d}/{:d})'.format(acc * 100, corrects, dataset_size))
-    print("\ttest F1 Score: {:f}".format(f1score))
+    acc = (corrects.double() / len(y_true))
+    precision = precision_score(preds, y_true, average='macro')
+    recall = recall_score(preds, y_true, average='macro')
+    f1score = f1_score(preds, y_true, average='macro')
+
+    target_names=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+    print()
+    print("\tTest Acc: {:.2f}%".format(acc * 100))
+    print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(preds, y_true, average=None))) + ")")
+    print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(preds, y_true, average=None))) + ")")
+    print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(preds, y_true, average=None))) + ")")
+    print()
+    print(confusion_matrix(preds, y_true))
     print()
     
     return {
@@ -269,10 +277,19 @@ def distributed_evaluate(models, dl):
     y_true = torch.as_tensor(dl.dataset.targets)
     corrects += torch.sum(preds == y_true)
     acc = (corrects.double() / len(y_true))
+    precision = precision_score(preds, y_true, average='macro')
+    recall = recall_score(preds, y_true, average='macro')
     f1score = f1_score(preds, y_true, average='macro')
 
+    target_names=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+    print()
     print("\tTest Acc: {:.2f}%".format(acc * 100))
-    print("\tTest F1 Score: {:f}".format(f1score))
+    print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(preds, y_true, average=None))) + ")")
+    print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(preds, y_true, average=None))) + ")")
+    print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(preds, y_true, average=None))) + ")")
+    print()
+    print(confusion_matrix(preds, y_true))
     print()
 
     return {

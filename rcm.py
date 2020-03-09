@@ -350,12 +350,72 @@ def finetuning(args):
     else:   # Reduced Classification Model
         finetuning_rcm(option)
 
+def evaluation_baseline(option):
+    _save_name = option["save_name"]
+    if option["model"] == "VGG16":
+        model = models.VGG(layers=16)
+    elif option["model"] == "MobileNet":
+        model = models.MobileNet(alpha=option["alpha"])
+    elif option["model"] == "LeNet5":
+        model = models.LeNet5()
+    
+    if option["model"] == "LeNet5":
+        test_dl = load_mnist("test", 1, 1, option["batch"])
+    else:
+        test_dl = load_cifar10("test", 1, 1, option["batch"])
+    
+    load_model = torch.load(option["model_path"][0], map_location=option["dev"])
+    model._modules = load_model['_modules']
+    model.load_state_dict(load_model['state_dict'])
+    model = model.to(option["dev"])
+
+    result = evaluate(model, test_dl)
+
+def evaluation_rcm(option):
+    if option["model"] == "VGG16":
+        model = [models.VGG(layers=16, classification=10) for _ in range(option["rcm"])]
+    elif option["model"] == "MobileNet":
+        model = [models.MobileNet(alpha=option["alpha"], classification=10) for _ in range(option["rcm"])]
+    elif option["model"] == "LeNet5":
+        model = [models.LeNet5(classification=10) for _ in range(option["rcm"])]
+
+    if option["model"] == "LeNet5":
+        test_dl = load_mnist("test", 1, 1, option["batch"])
+    else:
+        test_dl = load_cifar10("test", 1, 1, option["batch"])
+
+    i = 0
+    for m in model:
+        load_model = torch.load(option["model_path"][i], map_location=option["dev"])
+        m._modules = load_model['_modules']
+        m.load_state_dict(load_model['state_dict'])
+        m = m.to(option["dev"])
+        i = i + 1
+    
+    result = distributed_evaluate(model, test_dl)
+
+def evaluation(args):
+    option = dict(
+        dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
+        model = args.model,
+        alpha = args.alpha,
+        rcm = args.rcm,
+        model_path = args.model_path,
+        batch = args.batch,
+    )
+
+    if option["rcm"] == 1:   # Baseline
+        evaluation_baseline(option)
+    else:   # Reduced Classification Model
+        evaluation_rcm(option)
+
 def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--prune", action="store_true")
     parser.add_argument("--finetuning", action="store_true")
+    parser.add_argument("--eval", action="store_true")
     parser.add_argument("--rcm", type=int, choices=[1, 2, 5, 10], default="1")
     parser.add_argument("--model_path", type=str, nargs="*")
     parser.add_argument("--model", choices=['LeNet5', 'VGG16', 'MobileNet'])
@@ -371,6 +431,7 @@ def get_args():
     parser.set_defaults(train=False)
     parser.set_defaults(prune=False)
     parser.set_defaults(finetuning=False)
+    parser.set_defaults(eval=False)
     parser.set_defaults(retraining=False)
 
     args = parser.parse_args()
@@ -380,9 +441,10 @@ def get_args():
 def error_check_args(args):
     if args.rcm != 1 and args.model_path is None:
         print("Model path is required.")
-    elif ((args.train == True and args.prune == False and args.finetuning == False) or \
-          (args.train == False and args.prune == True and args.finetuning == False) or \
-          (args.train == False and args.prune == False and args.finetuning == True)) is False:
+    elif ((args.train == True and args.prune == False and args.finetuning == False and args.eval == False) or \
+          (args.train == False and args.prune == True and args.finetuning == False and args.eval == False) or \
+          (args.train == False and args.prune == False and args.finetuning == True and args.eval == False) or \
+          (args.train == False and args.prune == False and args.finetuning == False and args.eval == True)) is False:
         print("Only one option of train, prune, and finetuning option, must be used.")
     elif args.prune == True and args.filters_removed is None:
         print("To use pruning, filters_removed option must be entered.")
@@ -403,6 +465,8 @@ def main():
         prune(args)
     elif args.finetuning:
         finetuning(args)
+    elif args.eval:
+        evaluation(args)
 
 if __name__ == "__main__":
     main()
