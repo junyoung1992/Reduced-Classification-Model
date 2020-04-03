@@ -63,7 +63,8 @@ def load_mnist(dataset_type, distribution, partition, batch_size):
         np.random.seed(42)
         np.random.shuffle(indices)
         
-        labels = []
+        labels_train = []
+        labels_test = []
         if distribution == 2:
             if partition == 1:
                 p = [0, 1, 2, 3, 4]
@@ -75,33 +76,33 @@ def load_mnist(dataset_type, distribution, partition, batch_size):
             
             for target in mnist_train.targets:
                 if target == p[0]:
-                    labels += [torch.tensor(0)]
+                    labels_train += [torch.tensor(0)]
                 elif target == p[1]:
-                    labels += [torch.tensor(1)]
+                    labels_train += [torch.tensor(1)]
                 elif target == p[2]:
-                    labels += [torch.tensor(2)]
+                    labels_train += [torch.tensor(2)]
                 elif target == p[3]:
-                    labels += [torch.tensor(3)]
+                    labels_train += [torch.tensor(3)]
                 elif target == p[4]:
-                    labels += [torch.tensor(4)]
+                    labels_train += [torch.tensor(4)]
                 else:
-                    labels += [torch.tensor(5)]
-            mnist_train.targets = torch.as_tensor(labels)
+                    labels_train += [torch.tensor(5)]
+            mnist_train.targets = torch.as_tensor(labels_train)
             
             for target in mnist_valid.targets:
                 if target == p[0]:
-                    labels += [torch.tensor(0)]
+                    labels_test += [torch.tensor(0)]
                 elif target == p[1]:
-                    labels += [torch.tensor(1)]
+                    labels_test += [torch.tensor(1)]
                 elif target == p[2]:
-                    labels += [torch.tensor(2)]
+                    labels_test += [torch.tensor(2)]
                 elif target == p[3]:
-                    labels += [torch.tensor(3)]
+                    labels_test += [torch.tensor(3)]
                 elif target == p[4]:
-                    labels += [torch.tensor(4)]
+                    labels_test += [torch.tensor(4)]
                 else:
-                    labels += [torch.tensor(5)]
-            mnist_valid.targets = torch.as_tensor(labels)
+                    labels_test += [torch.tensor(5)]
+            mnist_valid.targets = torch.as_tensor(labels_test)
 
         elif distribution == 5:
             if partition == 1:
@@ -120,21 +121,21 @@ def load_mnist(dataset_type, distribution, partition, batch_size):
             
             for target in mnist_train.targets:
                 if target == p[0]:
-                    labels += [torch.tensor(0)]
+                    labels_train += [torch.tensor(0)]
                 elif target == p[1]:
-                    labels += [torch.tensor(1)]
+                    labels_train += [torch.tensor(1)]
                 else:
-                    labels += [torch.tensor(2)]
-            mnist_train.targets = torch.as_tensor(labels)
+                    labels_train += [torch.tensor(2)]
+            mnist_train.targets = torch.as_tensor(labels_train)
             
             for target in mnist_valid.targets:
                 if target == p[0]:
-                    labels += [torch.tensor(0)]
+                    labels_test += [torch.tensor(0)]
                 elif target == p[1]:
-                    labels += [torch.tensor(1)]
+                    labels_test += [torch.tensor(1)]
                 else:
-                    labels += [torch.tensor(2)]
-            mnist_valid.targets = torch.as_tensor(labels)
+                    labels_test += [torch.tensor(2)]
+            mnist_valid.targets = torch.as_tensor(labels_test)
 
         elif distribution == 10:
             if (0 < partition < 11) == False:
@@ -143,17 +144,17 @@ def load_mnist(dataset_type, distribution, partition, batch_size):
             
             for target in mnist_train.targets:
                 if target == (partition - 1):
-                    labels += [torch.tensor(0)]
+                    labels_train += [torch.tensor(0)]
                 else:
-                    labels += [torch.tensor(1)]
-            mnist_train.targets = torch.as_tensor(labels)
+                    labels_train += [torch.tensor(1)]
+            mnist_train.targets = torch.as_tensor(labels_train)
             
             for target in mnist_valid.targets:
                 if target == (partition - 1):
-                    labels += [torch.tensor(0)]
+                    labels_test += [torch.tensor(0)]
                 else:
-                    labels += [torch.tensor(1)]
-            mnist_valid.targets = torch.as_tensor(labels)
+                    labels_test += [torch.tensor(1)]
+            mnist_valid.targets = torch.as_tensor(labels_test)
 
         train_idx, valid_idx = indices[:split], indices[split:]
         train_sampler = SubsetRandomSampler(train_idx)
