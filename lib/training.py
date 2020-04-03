@@ -195,15 +195,12 @@ def evaluate(model, dl):
 
     since = time.time()
 
-    dataset_size = 0
     corrects = 0
-    acc = 0.0
     y_true, y_pred = [], []
 
     model.eval()
 
     for xb, yb in dl:
-        dataset_size += len(xb)
         xb = xb.to(dev)
         yb = yb.to(dev)
 
@@ -214,21 +211,22 @@ def evaluate(model, dl):
         y_pred += preds.tolist()
 
     time_elapsed = time.time() - since
-    
+
+    y_pred = torch.as_tensor(y_pred)
     acc = (corrects.double() / len(y_true))
-    precision = precision_score(preds, y_true, average='macro')
-    recall = recall_score(preds, y_true, average='macro')
-    f1score = f1_score(preds, y_true, average='macro')
+    precision = precision_score(y_pred, y_true, average='macro')
+    recall = recall_score(y_pred, y_true, average='macro')
+    f1score = f1_score(y_pred, y_true, average='macro')
 
     target_names=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
     print()
     print("\tTest Acc: {:.2f}%".format(acc * 100))
-    print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(preds, y_true, average=None))) + ")")
-    print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(preds, y_true, average=None))) + ")")
-    print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(preds, y_true, average=None))) + ")")
+    print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(y_pred, y_true, average=None))) + ")")
+    print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(y_pred, y_true, average=None))) + ")")
+    print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(y_pred, y_true, average=None))) + ")")
     print()
-    print(confusion_matrix(preds, y_true))
+    print(confusion_matrix(y_pred, y_true))
     print()
     
     return {
