@@ -2,8 +2,7 @@ from lib import models
 from lib.datasets.mnist import load_mnist
 from lib.datasets.cifar10 import load_cifar10
 from lib.training import fit, evaluate, distributed_evaluate
-from lib.compress.filterpruning import Pruning as fp
-from lib.compress.filterpruning import iterative_pruning as ifp
+from lib.compress.elementwisepruning_revise import Pruning as ePruning
 from lib.compress.filterpruning_revise import Pruning
 
 from torch import optim, nn
@@ -235,28 +234,88 @@ def prune_rcm(option):
 
         write_pruning_result(model, test_dl, option["rcm"], i + 1, csv_name)
 
-def prune(args):
-    option = dict(
-        dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
-        model = args.model,
-        alpha = args.alpha,
-        rcm = args.rcm,
-        model_path = args.model_path,
-        lr = args.lr,
-        epoch = args.epoch,
-        schedule = args.schedule,
-        batch = args.batch,
-        save_name = args.model,
-        save_option = "best_acc",
-        filters_removed = args.filters_removed,
-        retraining = args.retraining,
-        prune_step = args.prune_step
-    )
+def eprune_baseline(option):
+    _save_name = option["save_name"]
+    if option["model"] == "VGG16":
+        model = models.VGG(layers=16)
+    elif option["model"] == "MobileNet":
+        model = models.MobileNet(alpha=option["alpha"])
+        _save_name = _save_name + "x{:n}".format(option["alpha"])
+    elif option["model"] == "LeNet5":
+        model = models.LeNet5()
+    _save_name = _save_name + "_ep_baseline"
 
-    if option["rcm"] == 1:
-        prune_baseline(option)
+    if option["model"] == "LeNet5":
+        train_dl = load_mnist("train", 1, 1, option["batch"])    # (train_dl, valid_dl)
+        test_dl = load_mnist("test", 1, 1, option["batch"])
     else:
-        prune_rcm(option)
+        train_dl = load_cifar10("train", 1, 1, option["batch"])
+        test_dl = load_cifar10("test", 1, 1, option["batch"])
+    
+    load_model = torch.load(option["model_path"][0], map_location=option["dev"])
+    model._modules = load_model['_modules']
+    model.load_state_dict(load_model['state_dict'])
+    model = model.to(option["dev"])
+
+    # print("Element-wise Pruning #{:d}".format(i + 1))
+    # save_name = _save_name + "_{:03d}".format(i + 1)
+    print("Element-wise Pruning")
+    save_name = _save_name
+    pruning = ePruning(model, train_dl[0], train_dl[1])
+    history = pruning.iterative_pruning(one_epoch_remove=option["threshold_ratio"], finetuning=option["retraining"],
+                                        epoch=option["epoch"], lr=option["lr"], save_name=save_name, save_mode=option["save_option"])
+
+    result = evaluate(model, test_dl)
+
+def eprune_rcm(option):
+    return
+
+def prune(args):
+    if args.prune == "element":
+        option = dict(
+            dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
+            model = args.model,
+            alpha = args.alpha,
+            rcm = args.rcm,
+            model_path = args.model_path,
+            lr = args.lr,
+            epoch = args.epoch,
+            schedule = args.schedule,
+            batch = args.batch,
+            save_name = args.model,
+            save_option = "best_acc",
+            threshold_ratio = args.threshold_ratio,
+            retraining = args.retraining,
+            prune_step = args.prune_step
+        )
+
+        if option["rcm"] == 1:
+            eprune_baseline(option)
+        else:
+            eprune_rcm(option)
+
+    elif args.prune == "filter":
+        option = dict(
+            dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
+            model = args.model,
+            alpha = args.alpha,
+            rcm = args.rcm,
+            model_path = args.model_path,
+            lr = args.lr,
+            epoch = args.epoch,
+            schedule = args.schedule,
+            batch = args.batch,
+            save_name = args.model,
+            save_option = "best_acc",
+            filters_removed = args.filters_removed,
+            retraining = args.retraining,
+            prune_step = args.prune_step
+        )
+        
+        if option["rcm"] == 1:
+            prune_baseline(option)
+        else:
+            prune_rcm(option)
 
 def finetuning_baseline(option):
     _save_name = option["save_name"]
@@ -413,7 +472,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--train", action="store_true")
-    parser.add_argument("--prune", action="store_true")
+    parser.add_argument("--prune", choices=[False, "element", "filter"], default=False)
     parser.add_argument("--finetuning", action="store_true")
     parser.add_argument("--eval", action="store_true")
     parser.add_argument("--rcm", type=int, choices=[1, 2, 5, 10], default="1")
@@ -424,12 +483,12 @@ def get_args():
     parser.add_argument("--epoch", type=int, default="300")
     parser.add_argument("--lr", type=float, default="1e-2")
     parser.add_argument("--schedule", type=int, nargs="*")
+    parser.add_argument("--threshold_ratio", type=float)
     parser.add_argument("--filters_removed", type=int)   # during one epoch
     parser.add_argument("--retraining", action="store_true")
     parser.add_argument("--prune_step", type=int, default="10")
 
     parser.set_defaults(train=False)
-    parser.set_defaults(prune=False)
     parser.set_defaults(finetuning=False)
     parser.set_defaults(eval=False)
     parser.set_defaults(retraining=False)
@@ -442,7 +501,7 @@ def error_check_args(args):
     if args.rcm != 1 and args.model_path is None:
         print("Model path is required.")
     elif ((args.train == True and args.prune == False and args.finetuning == False and args.eval == False) or \
-          (args.train == False and args.prune == True and args.finetuning == False and args.eval == False) or \
+          (args.train == False and args.prune != False and args.finetuning == False and args.eval == False) or \
           (args.train == False and args.prune == False and args.finetuning == True and args.eval == False) or \
           (args.train == False and args.prune == False and args.finetuning == False and args.eval == True)) is False:
         print("Only one option of train, prune, and finetuning option, must be used.")
@@ -458,7 +517,7 @@ def main():
 
     if error_check_args(args):
         return
-    
+
     if args.train:
         train(args)
     elif args.prune:

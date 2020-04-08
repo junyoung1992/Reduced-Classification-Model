@@ -74,10 +74,13 @@ class Pruning:
             self.model = self.model.to(self.dev)
             history = fit(self.model, self.train_dl, self.valid_dl, loss_fn, opt, epoch, scheduler, save_name, save_mode)
             return history
+            
         elif finetuning == False:
             save_name_pt = save_name + "_No_Retraining" + ".pt"
             save_path = os.path.join(os.getcwd(), 'save_models', save_name_pt)
             save_model(self.model, path=save_path)
+
+            return None
     
     def prune_lenet5_conv_layer(self, layer_index, filter_index):
         layer_list, layer_structure_count = self.lenet5_layer_list()
