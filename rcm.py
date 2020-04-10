@@ -246,7 +246,7 @@ def eprune_baseline(option):
     _save_name = _save_name + "_ep_baseline"
 
     if option["model"] == "LeNet5":
-        train_dl = load_mnist("train", 1, 1, option["batch"])    # (train_dl, valid_dl)
+        train_dl = load_mnist("train", 1, 1, option["batch"])   # (train_dl, valid_dl)
         test_dl = load_mnist("test", 1, 1, option["batch"])
     else:
         train_dl = load_cifar10("train", 1, 1, option["batch"])
@@ -257,8 +257,6 @@ def eprune_baseline(option):
     model.load_state_dict(load_model['state_dict'])
     model = model.to(option["dev"])
 
-    # print("Element-wise Pruning #{:d}".format(i + 1))
-    # save_name = _save_name + "_{:03d}".format(i + 1)
     print("Element-wise Pruning")
     save_name = _save_name
     pruning = ePruning(model, train_dl[0], train_dl[1])
@@ -410,7 +408,6 @@ def finetuning(args):
         finetuning_rcm(option)
 
 def evaluation_baseline(option):
-    _save_name = option["save_name"]
     if option["model"] == "VGG16":
         model = models.VGG(layers=16)
     elif option["model"] == "MobileNet":
@@ -428,6 +425,8 @@ def evaluation_baseline(option):
     model.load_state_dict(load_model['state_dict'])
     model = model.to(option["dev"])
 
+    print("Evaluation")
+    print("\t{}".format(option["model_path"][0]))
     result = evaluate(model, test_dl)
 
 def evaluation_rcm(option):

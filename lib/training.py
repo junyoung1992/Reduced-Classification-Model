@@ -221,6 +221,7 @@ def evaluate(model, dl):
     target_names=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
     print()
+    print('Evaluation complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     print("\tTest Acc: {:.2f}%".format(acc * 100))
     print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(y_pred, y_true, average=None))) + ")")
     print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(y_pred, y_true, average=None))) + ")")
