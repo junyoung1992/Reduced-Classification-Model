@@ -54,7 +54,7 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
         print('Epoch {}/{}'.format(epoch + 1, num_epochs), end = ' ')
 
         # Each epoch has a training and validation phase
-        for phase in ['train', 'val']:
+        for phase in ['train', 'valid']:
             since_2 = time.time()
 
             if phase == 'train':
@@ -63,7 +63,7 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
                 
                 for p in optimizer.param_groups:
                     current_lr = round(p['lr'], 7)
-                    print("(lr: {:f})".format(current_lr), end = ' ')
+                    print("(lr: {:f})".format(current_lr))
             else:
                 model.eval()    # Set model to evaluate mode
                 dl = valid_dl
@@ -106,9 +106,9 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
             epoch_acc = float((running_corrects.double() / dataset_size))
             epoch_f1 = f1_score(y_pred, y_true, average='macro')
             
-            print('{} ({:.0f}m {:.0f}s) Loss: {:.4f} Acc: {:.2f}% ({:d}/{:d}) F1 score: {:.4f}'\
+            print('{} ({:02.0f}m {:02.0f}s)\tLoss: {:.4f}\tAcc: {:.2f}% ({:d}/{:d})\tF1 score: {:.4f}'\
                   .format(phase, time_elapsed_2 // 60, time_elapsed_2 % 60,
-                          epoch_loss, epoch_acc * 100, running_corrects, dataset_size, epoch_f1), end = ' ')
+                          epoch_loss, epoch_acc * 100, running_corrects, dataset_size, epoch_f1))
 
             # statistics
             if phase == 'train':
@@ -121,7 +121,7 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
                 valid_f1.append(float(epoch_f1))
 
             # deep copy the model
-            if phase == 'val' and (epoch_acc > best_acc or (epoch_acc == best_acc and epoch_loss <= best_loss)):
+            if phase == 'valid' and (epoch_acc > best_acc or (epoch_acc == best_acc and epoch_loss <= best_loss)):
                 best_acc = epoch_acc
                 best_acc_epoch = epoch
                 
@@ -132,7 +132,7 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
                     # torch.save(best_model_wts, save_path)
                     save_model(model, save_path)
 
-            if phase == 'val' and (epoch_loss < best_loss or (epoch_loss == best_loss and epoch_acc >= best_acc)):
+            if phase == 'valid' and (epoch_loss < best_loss or (epoch_loss == best_loss and epoch_acc >= best_acc)):
                 best_loss = epoch_loss
                 best_loss_epoch = epoch
                 
@@ -140,9 +140,10 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
                     best_model_wts = copy.deepcopy(model.state_dict())
                     save_name_pt = save_name + "_" + save_mode + ".pt"
                     save_path = os.path.join(os.getcwd(), 'save_models', save_name_pt)
-                    torch.save(best_model_wts, save_path)
+                    # torch.save(best_model_wts, save_path)
+                    save_model(model, save_path)
             
-            if phase == 'val' and (epoch_f1 > best_f1 or (epoch_f1 == best_f1 and epoch_loss <= best_loss)):
+            if phase == 'valid' and (epoch_f1 > best_f1 or (epoch_f1 == best_f1 and epoch_loss <= best_loss)):
                 best_f1 = epoch_f1
                 best_f1_epoch = epoch
                 
@@ -156,7 +157,8 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
             if save_toggle and save_mode == "all":
                 save_name_pt = save_name + "_epoch_{:03d}.pt".format(epoch+1)
                 save_path = os.path.join(os.getcwd(), 'save_models', save_name_pt)
-                torch.save(model.state_dict(), save_path)
+                # torch.save(model.state_dict(), save_path)
+                save_model(model, save_path)
 
         if schedule == "custom":
             scheduler.step(valid_acc[epoch])
@@ -165,8 +167,6 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
                 toggle = 1
         elif type(schedule) == list:
             scheduler.step()
-            
-        print()
     
     time_elapsed = time.time() - since
     print()
@@ -220,9 +220,8 @@ def evaluate(model, dl):
 
     target_names=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
-    print()
     print('Evaluation complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print("\tTest Acc: {:.2f}%".format(acc * 100))
+    print("\tTest Acc: {:.2f}% ({:d}/{:d})".format(acc * 100, corrects, len(y_true)))
     print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(y_pred, y_true, average=None))) + ")")
     print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(y_pred, y_true, average=None))) + ")")
     print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(y_pred, y_true, average=None))) + ")")
@@ -282,8 +281,7 @@ def distributed_evaluate(models, dl):
 
     target_names=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
-    print()
-    print("\tTest Acc: {:.2f}%".format(acc * 100))
+    print("\tTest Acc: {:.2f}% ({:d}/{:d})".format(acc * 100, corrects, len(y_true)))
     print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(preds, y_true, average=None))) + ")")
     print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(preds, y_true, average=None))) + ")")
     print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(preds, y_true, average=None))) + ")")

@@ -257,16 +257,55 @@ def eprune_baseline(option):
     model.load_state_dict(load_model['state_dict'])
     model = model.to(option["dev"])
 
-    print("Element-wise Pruning")
-    save_name = _save_name
-    pruning = ePruning(model, train_dl[0], train_dl[1])
-    history = pruning.iterative_pruning(one_epoch_remove=option["threshold_ratio"], finetuning=option["retraining"],
-                                        epoch=option["epoch"], lr=option["lr"], save_name=save_name, save_mode=option["save_option"])
+    print("Element-wise Pruning - Baseline")
+    pruning = ePruning(model, train_dl[0], train_dl[1], option["threshold_ratio"])
+    save_name = _save_name + "_{:03.0f}".format((option["threshold_ratio"] * 100))
+    history = pruning.iterative_pruning(finetuning=option["retraining"], epoch=option["epoch"], lr=option["lr"], schedule=option["schedule"],
+                                        save_name=save_name, save_mode=option["save_option"])
 
+    print("* Evaluating Test Sets")
     result = evaluate(model, test_dl)
 
 def eprune_rcm(option):
-    return
+    _save_name = option["save_name"]
+    classification = int(10 / option["rcm"]) + 1
+    if option["model"] == "VGG16":
+        model = [models.VGG(layers=16, classification=classification) for _ in range(option["rcm"])]
+    elif option["model"] == "MobileNet":
+        model = [models.MobileNet(alpha=option["alpha"], classification=classification) for _ in range(option["rcm"])]
+        if option["alpha"] == 1.0:
+            _save_name = _save_name + "x1.0"
+        else:
+            _save_name = _save_name + "x{:n}".format(option["alpha"])
+    elif option["model"] == "LeNet5":
+        model = [models.LeNet5(classification=classification) for _ in range(option["rcm"])]
+    _save_name = _save_name + "_ep_rcm{:d}".format(option["rcm"])
+    
+    if option["model"] == "LeNet5":
+        train_dl = [load_mnist("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])]   # ([train_dl[0], ...], [valid_dl[0], ...])
+        test_dl = load_mnist("test", 1, 1, option["batch"])
+    else:
+        train_dl = [load_cifar10("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])]
+        test_dl = load_cifar10("test", 1, 1, option["batch"])
+
+    i = 0
+    for m in model:
+        load_model = torch.load(option["model_path"][i], map_location=option["dev"])
+        m._modules = load_model['_modules']
+        m.load_state_dict(load_model['state_dict'])
+        m = m.to(option["dev"])
+        i = i + 1
+    
+    print("Element-wise Pruning - RCM{}".format(option["rcm"]))
+    for i in range(option["rcm"]):
+        print("Reduced Classification model #{:d}".format(i + 1))
+        pruning = ePruning(model[i], train_dl[i][0], train_dl[i][1], option["threshold_ratio"])
+        save_name = _save_name + "_{:03d}_{:d}".format((option["threshold_ratio"]), i + 1)
+        history = pruning.iterative_pruning(finetuning=option["retraining"], epoch=option["epoch"], lr=option["lr"], schedule=option["schedule"],
+                                            save_name=save_name, save_mode=option["save_option"])
+
+    print("* Evaluating Test Sets")
+    result = distributed_evaluate(model, test_dl)
 
 def prune(args):
     if args.prune == "element":
@@ -278,7 +317,7 @@ def prune(args):
             model_path = args.model_path,
             lr = args.lr,
             epoch = args.epoch,
-            schedule = args.schedule,
+            schedule = args.schedule if args.schedule != 0 else None,
             batch = args.batch,
             save_name = args.model,
             save_option = "best_acc",
@@ -301,7 +340,7 @@ def prune(args):
             model_path = args.model_path,
             lr = args.lr,
             epoch = args.epoch,
-            schedule = args.schedule,
+            schedule = args.schedule if args.schedule != 0 else None,
             batch = args.batch,
             save_name = args.model,
             save_option = "best_acc",
@@ -481,7 +520,7 @@ def get_args():
     parser.add_argument("--batch", type=int, default="32")
     parser.add_argument("--epoch", type=int, default="300")
     parser.add_argument("--lr", type=float, default="1e-2")
-    parser.add_argument("--schedule", type=int, nargs="*")
+    parser.add_argument("--schedule", type=int, nargs="*", default=0)
     parser.add_argument("--threshold_ratio", type=float)
     parser.add_argument("--filters_removed", type=int)   # during one epoch
     parser.add_argument("--retraining", action="store_true")
