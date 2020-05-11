@@ -432,9 +432,9 @@ def finetuning_rcm(option):
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "ConvNet":
-        model = [models.ConvNet(classification=classification) for _ in range(option["rcm"])]
+        model = [models.ConvNet(classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "ConvNet_s":
-        model = [models.ConvNet_s(classification=classification) for _ in range(option["rcm"])]
+        model = [models.ConvNet_s(classification=10) for _ in range(option["rcm"])]
     _save_name = _save_name + "_ft_rcm{:d}".format(option["rcm"])
 
     if option["model"] == "LeNet5":
@@ -517,9 +517,9 @@ def evaluation_rcm(option):
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "ConvNet":
-        model = [models.ConvNet(classification=classification) for _ in range(option["rcm"])]
+        model = [models.ConvNet(classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "ConvNet_s":
-        model = [models.ConvNet_s(classification=classification) for _ in range(option["rcm"])]
+        model = [models.ConvNet_s(classification=10) for _ in range(option["rcm"])]
 
     if option["model"] == "LeNet5":
         test_dl = load_mnist("test", 1, 1, option["batch"])
