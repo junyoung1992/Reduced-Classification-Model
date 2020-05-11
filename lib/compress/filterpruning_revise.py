@@ -56,6 +56,8 @@ class Pruning:
                 self.prune_mobilenet_conv_layer(layer_index, filter_index)
             elif isinstance(self.model, LeNet5):
                 self.prune_lenet5_conv_layer(layer_index, filter_index)
+            elif isinstance(self.model, ConvNet):
+                self.prune_convnet_conv_layer(layer_index, filter_index)
         
         new_filters = 0
         for layer in self.model.modules():
@@ -153,6 +155,81 @@ class Pruning:
             self.model.features[6] = new_next_conv
         elif layer_index == 6:
             self.model.features[6] = new_conv
+            self.model.classifier[0] = new_next_linear
+    
+    def prune_convnet_conv_layer(self, layer_index, filter_index):
+        layer_list, layer_structure_count = self.lenet5_layer_list()
+
+        conv = layer_list[layer_index][1]
+        if layer_index in [0, 5, 10]:
+            next_conv = layer_list[layer_index + 2][1]
+        elif layer_index in [2, 7]:
+            next_conv = layer_list[layer_index + 3][1]
+        elif layer_index == 12:
+            next_conv = None
+            next_linear = self.model.classifier[0]
+        
+        # conv
+        new_conv = nn.Conv2d(in_channels=conv.in_channels,
+                            out_channels=conv.out_channels-1,
+                            kernel_size=conv.kernel_size,
+                            stride=conv.stride,
+                            padding=conv.padding)
+        
+        old_weights = conv.weight.data.cpu().numpy()
+        new_weights = new_conv.weight.data.cpu().numpy()
+        new_weights[: filter_index, :, :, :] = old_weights[: filter_index, :, :, :]
+        new_weights[filter_index : , :, :, :] = old_weights[filter_index + 1 :, :, :, :]
+        new_conv.weight.data = torch.from_numpy(new_weights)
+        new_conv.weight.data = new_conv.weight.to(self.dev)
+
+        old_bias = conv.bias.data.cpu().numpy()
+        new_bias = new_conv.bias.data.cpu().numpy()
+        new_bias[: filter_index] = old_bias[: filter_index]
+        new_bias[filter_index :] = old_bias[filter_index + 1 :]
+        new_conv.bias.data = torch.from_numpy(new_bias)
+        new_conv.bias.data = new_conv.bias.to(self.dev)
+
+        if next_conv != None:
+            new_next_conv = nn.Conv2d(in_channels=next_conv.in_channels-1,
+                                    out_channels=next_conv.out_channels,
+                                    kernel_size=next_conv.kernel_size,
+                                    stride=next_conv.stride,
+                                    padding=next_conv.padding)
+            old_weights = next_conv.weight.data.cpu().numpy()
+            new_weights = new_next_conv.weight.data.cpu().numpy()
+            new_weights[:, : filter_index, :, :] = old_weights[:, : filter_index, :, :]
+            new_weights[: , filter_index :, :, :] = old_weights[:, filter_index + 1 :, :, :]
+            new_next_conv.weight.data = torch.from_numpy(new_weights)
+            new_next_conv.weight.data = new_next_conv.weight.to(self.dev)
+
+            new_next_conv.bias.data = next_conv.bias.data
+            new_next_conv.bias.data = new_next_conv.bias.to(self.dev)
+        else:
+            params_per_input_channel = next_linear.in_features // conv.out_channels
+            new_next_linear = nn.Linear(in_features=next_linear.in_features - params_per_input_channel,
+                                        out_features=next_linear.out_features)
+            
+            old_weights = next_linear.weight.data.cpu().numpy()
+            new_weights = new_next_linear.weight.data.cpu().numpy() 
+
+            new_weights[:, : filter_index * params_per_input_channel] = old_weights[:, : filter_index * params_per_input_channel]
+            new_weights[:, filter_index * params_per_input_channel :] = old_weights[:, (filter_index + 1) * params_per_input_channel :]
+            new_next_linear.weight.data = torch.from_numpy(new_weights)
+            new_next_linear.weight.data = new_next_linear.weight.to(self.dev)
+
+            new_next_linear.bias.data = next_linear.bias.data
+            new_next_linear.bias.data = new_next_linear.bias.to(self.dev)
+
+        # exchange
+        if layer_index in [0, 5, 10]:
+            self.model.features[layer_index] = new_conv
+            self.model.features[layer_index + 2] = new_next_conv
+        elif layer_index in [2, 7]:
+            self.model.features[layer_index] = new_conv
+            self.model.features[layer_index + 3] = new_next_conv
+        elif layer_index == 12:
+            self.model.features[12] = new_conv
             self.model.classifier[0] = new_next_linear
     
     def lenet5_layer_list(self):

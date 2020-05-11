@@ -17,11 +17,9 @@ save_models
 data
 
 # script
+script
 *.sh
 *.out
 
 # vscode
 .vscode
-
-# test
-test.py

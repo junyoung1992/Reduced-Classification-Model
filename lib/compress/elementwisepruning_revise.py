@@ -113,8 +113,6 @@ class Pruner:
         return threshold
 
     def prune(self, threshold):
-        
-
         index = 0
         dropout_index = 0
 
@@ -130,20 +128,23 @@ class Pruner:
                 weight_mask = weight_mask.to(dtype=torch.float).to(self.dev)
                 self.__weight_masks[index] = weight_mask
 
-                bias_mask = torch.ones(layer.bias.data.size())
-                bias_mask = bias_mask.to(self.dev)
-                for i in range(bias_mask.size(0)):
-                    if len(torch.nonzero(weight_mask[i]).size()) == 0:
-                        bias_mask[i] = 0
-                self.__bias_masks[index] = bias_mask
+                if hasattr(layer.bias, 'data'):
+                    bias_mask = torch.ones(layer.bias.data.size())
+                    bias_mask = bias_mask.to(self.dev)
+                    for i in range(bias_mask.size(0)):
+                        if len(torch.nonzero(weight_mask[i]).size()) == 0:
+                            bias_mask[i] = 0
+                    self.__bias_masks[index] = bias_mask
 
                 weights_num = torch.numel(layer.weight.data)
                 layer_pruned = weights_num - torch.nonzero(weight_mask).size(0)
-                bias_num = torch.numel(bias_mask)
-                bias_pruned = bias_num - torch.nonzero(bias_mask).size(0)
+                if hasattr(layer.bias, 'data'):
+                    bias_num = torch.numel(bias_mask)
+                    bias_pruned = bias_num - torch.nonzero(bias_mask).size(0)
 
                 layer.weight.data *= weight_mask
-                layer.bias.data *= bias_mask
+                if hasattr(layer.bias, 'data'):
+                    layer.bias.data *= bias_mask
                 
                 num_pruned += layer_pruned
                 num_weights += weights_num
@@ -174,7 +175,8 @@ class Pruner:
         for layer in self.__model.modules():
             if isinstance(layer, nn.Linear) or isinstance(layer, nn.Conv2d):
                 layer.weight.grad.data *= self.__weight_masks[index]
-                layer.bias.grad.data *= self.__bias_masks[index]
+                if hasattr(layer.bias, 'data'):
+                    layer.bias.grad.data *= self.__bias_masks[index]
                 index += 1
     
     def fit(self, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None, save_name=None, save_mode="all"):

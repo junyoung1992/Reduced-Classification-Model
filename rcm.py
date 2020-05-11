@@ -25,6 +25,10 @@ def train_baseline(option):
             _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = models.LeNet5()
+    elif option["model"] == "ConvNet":
+        model = models.ConvNet()
+    elif option["model"] == "ConvNet_s":
+        model = models.ConvNet_s()
     save_name = _save_name + "_baseline"
     
     if option["model"] == "LeNet5":
@@ -54,6 +58,10 @@ def train_rcm(option):
             _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=10) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet":
+        model = [models.ConvNet(classification=10) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet_s":
+        model = [models.ConvNet_s(classification=10) for _ in range(option["rcm"])]
     _save_name = _save_name + "_rcm{:d}".format(option["rcm"])
 
     if option["model"] == "LeNet5":
@@ -126,6 +134,10 @@ def prune_baseline(option):
         _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = models.LeNet5()
+    elif option["model"] == "ConvNet":
+        model = models.ConvNet()
+    elif option["model"] == "ConvNet_s":
+        model = models.ConvNet_s()
     _save_name = _save_name + "_fp_baseline"
 
     if option["model"] == "LeNet5":
@@ -184,6 +196,10 @@ def prune_rcm(option):
             _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=classification) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet":
+        model = [models.ConvNet(classification=classification) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet_s":
+        model = [models.ConvNet_s(classification=classification) for _ in range(option["rcm"])]
     _save_name = _save_name + "_fp_rcm{:d}".format(option["rcm"])
 
     i = 0
@@ -240,9 +256,16 @@ def eprune_baseline(option):
         model = models.VGG(layers=16)
     elif option["model"] == "MobileNet":
         model = models.MobileNet(alpha=option["alpha"])
-        _save_name = _save_name + "x{:n}".format(option["alpha"])
+        if option["alpha"] == 1.0:
+            _save_name = _save_name + "x1.0"
+        else:
+            _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = models.LeNet5()
+    elif option["model"] == "ConvNet":
+        model = models.ConvNet()
+    elif option["model"] == "ConvNet_s":
+        model = models.ConvNet_s()
     _save_name = _save_name + "_ep_baseline"
 
     if option["model"] == "LeNet5":
@@ -258,8 +281,9 @@ def eprune_baseline(option):
     model = model.to(option["dev"])
 
     print("Element-wise Pruning - Baseline")
+    print("\t{}".format(option["model_path"][0]))
     pruning = ePruning(model, train_dl[0], train_dl[1], option["threshold_ratio"])
-    save_name = _save_name + "_{:03.0f}".format((option["threshold_ratio"] * 100))
+    save_name = _save_name + "_{:03d}".format((option["threshold_ratio"]))
     history = pruning.iterative_pruning(finetuning=option["retraining"], epoch=option["epoch"], lr=option["lr"], schedule=option["schedule"],
                                         save_name=save_name, save_mode=option["save_option"])
 
@@ -279,6 +303,10 @@ def eprune_rcm(option):
             _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=classification) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet":
+        model = [models.ConvNet(classification=classification) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet_s":
+        model = [models.ConvNet_s(classification=classification) for _ in range(option["rcm"])]
     _save_name = _save_name + "_ep_rcm{:d}".format(option["rcm"])
     
     if option["model"] == "LeNet5":
@@ -299,6 +327,7 @@ def eprune_rcm(option):
     print("Element-wise Pruning - RCM{}".format(option["rcm"]))
     for i in range(option["rcm"]):
         print("Reduced Classification model #{:d}".format(i + 1))
+        print("\t{}".format(option["model_path"][i]))
         pruning = ePruning(model[i], train_dl[i][0], train_dl[i][1], option["threshold_ratio"])
         save_name = _save_name + "_{:03d}_{:d}".format((option["threshold_ratio"]), i + 1)
         history = pruning.iterative_pruning(finetuning=option["retraining"], epoch=option["epoch"], lr=option["lr"], schedule=option["schedule"],
@@ -366,6 +395,10 @@ def finetuning_baseline(option):
             _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = models.LeNet5()
+    elif option["model"] == "ConvNet":
+        model = models.ConvNet()
+    elif option["model"] == "ConvNet_s":
+        model = models.ConvNet_s()
     save_name = _save_name + "_ft_baseline"
     
     if option["model"] == "LeNet5":
@@ -398,6 +431,10 @@ def finetuning_rcm(option):
             _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=10) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet":
+        model = [models.ConvNet(classification=classification) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet_s":
+        model = [models.ConvNet_s(classification=classification) for _ in range(option["rcm"])]
     _save_name = _save_name + "_ft_rcm{:d}".format(option["rcm"])
 
     if option["model"] == "LeNet5":
@@ -453,6 +490,10 @@ def evaluation_baseline(option):
         model = models.MobileNet(alpha=option["alpha"])
     elif option["model"] == "LeNet5":
         model = models.LeNet5()
+    elif option["model"] == "ConvNet":
+        model = models.ConvNet()
+    elif option["model"] == "ConvNet_s":
+        model = models.ConvNet_s()
     
     if option["model"] == "LeNet5":
         test_dl = load_mnist("test", 1, 1, option["batch"])
@@ -475,6 +516,10 @@ def evaluation_rcm(option):
         model = [models.MobileNet(alpha=option["alpha"], classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=10) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet":
+        model = [models.ConvNet(classification=classification) for _ in range(option["rcm"])]
+    elif option["model"] == "ConvNet_s":
+        model = [models.ConvNet_s(classification=classification) for _ in range(option["rcm"])]
 
     if option["model"] == "LeNet5":
         test_dl = load_mnist("test", 1, 1, option["batch"])
@@ -515,13 +560,13 @@ def get_args():
     parser.add_argument("--eval", action="store_true")
     parser.add_argument("--rcm", type=int, choices=[1, 2, 5, 10], default="1")
     parser.add_argument("--model_path", type=str, nargs="*")
-    parser.add_argument("--model", choices=['LeNet5', 'VGG16', 'MobileNet'])
+    parser.add_argument("--model", choices=['LeNet5', 'ConvNet', 'ConvNet_s', 'VGG16', 'MobileNet'])
     parser.add_argument("--alpha", type=float, choices=[1.0, 0.75, 0.5, 0.25], default="1.0")
     parser.add_argument("--batch", type=int, default="32")
     parser.add_argument("--epoch", type=int, default="300")
     parser.add_argument("--lr", type=float, default="1e-2")
     parser.add_argument("--schedule", type=int, nargs="*", default=0)
-    parser.add_argument("--threshold_ratio", type=float)
+    parser.add_argument("--threshold_ratio", type=int)
     parser.add_argument("--filters_removed", type=int)   # during one epoch
     parser.add_argument("--retraining", action="store_true")
     parser.add_argument("--prune_step", type=int, default="10")

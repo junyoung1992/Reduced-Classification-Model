@@ -1,4 +1,4 @@
-from lib import compress
-from lib import datasets
-from lib import models
+from .compress import *
+from .datasets import *
+from .models import *
 from .training import *
