@@ -104,7 +104,7 @@ def fit(model, train_dl, valid_dl, loss_fn, optimizer, num_epochs, schedule=None
 
             epoch_loss = running_loss / dataset_size
             epoch_acc = float((running_corrects.double() / dataset_size))
-            epoch_f1 = f1_score(y_pred, y_true, average='macro')
+            epoch_f1 = f1_score(y_true, y_pred, average='macro')
             
             print('{} ({:02.0f}m {:02.0f}s)\tLoss: {:.4f}\tAcc: {:.2f}% ({:d}/{:d})\tF1 score: {:.4f}'\
                   .format(phase, time_elapsed_2 // 60, time_elapsed_2 % 60,
@@ -214,19 +214,19 @@ def evaluate(model, dl):
 
     y_pred = torch.as_tensor(y_pred)
     acc = (corrects.double() / len(y_true))
-    precision = precision_score(y_pred, y_true, average='macro')
-    recall = recall_score(y_pred, y_true, average='macro')
-    f1score = f1_score(y_pred, y_true, average='macro')
+    precision = precision_score(y_true, y_pred, average='macro')
+    recall = recall_score(y_true, y_pred, average='macro')
+    f1score = f1_score(y_true, y_pred, average='macro')
 
     target_names=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
     print('Evaluation complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     print("\tTest Acc: {:.2f}% ({:d}/{:d})".format(acc * 100, corrects, len(y_true)))
-    print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(y_pred, y_true, average=None))) + ")")
-    print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(y_pred, y_true, average=None))) + ")")
-    print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(y_pred, y_true, average=None))) + ")")
+    print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(y_true, y_pred, average=None))) + ")")
+    print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(y_true, y_pred, average=None))) + ")")
+    print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(y_true, y_pred, average=None))) + ")")
     print()
-    print(confusion_matrix(y_pred, y_true))
+    print(confusion_matrix(y_true, y_pred))
     print()
     
     return {
@@ -275,18 +275,18 @@ def distributed_evaluate(models, dl):
     y_true = torch.as_tensor(dl.dataset.targets)
     corrects += torch.sum(preds == y_true)
     acc = (corrects.double() / len(y_true))
-    precision = precision_score(preds, y_true, average='macro')
-    recall = recall_score(preds, y_true, average='macro')
-    f1score = f1_score(preds, y_true, average='macro')
+    precision = precision_score(y_true, preds, average='macro')
+    recall = recall_score(y_true, preds, average='macro')
+    f1score = f1_score(y_true, preds, average='macro')
 
     target_names=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
     print("\tTest Acc: {:.2f}% ({:d}/{:d})".format(acc * 100, corrects, len(y_true)))
-    print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(preds, y_true, average=None))) + ")")
-    print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(preds, y_true, average=None))) + ")")
-    print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(preds, y_true, average=None))) + ")")
+    print("\tTest Precision: {:f} (".format(precision) + ", ".join(map(str, precision_score(y_true, preds, average=None))) + ")")
+    print("\tTest Recall: {:f} (".format(recall) + ", ".join(map(str, recall_score(y_true, preds, average=None))) + ")")
+    print("\tTest F1 Score: {:f} (".format(f1score) + ", ".join(map(str, f1_score(y_true, preds, average=None))) + ")")
     print()
-    print(confusion_matrix(preds, y_true))
+    print(confusion_matrix(y_true, preds))
     print()
 
     return {
