@@ -1,6 +1,45 @@
 from torch import nn
+from torch.nn import functional as f
 
 import torch
+
+class ResNet20(nn.Module):
+    def __init__(self, classification=10):
+        super().__init__()
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(num_features=16),
+            nn.ReLU(inplace=True)
+        )
+        self.conv2 = nn.Sequential(
+            Residual_Small(16, 16, downsample=False),
+            Residual_Small(16, 16, downsample=False),
+            Residual_Small(16, 16, downsample=False)
+        )
+        self.conv3 = nn.Sequential(
+            Residual_Small(16, 32, downsample=True),
+            Residual_Small(32, 32, downsample=False),
+            Residual_Small(32, 32, downsample=False),
+        )
+        self.conv4 = nn.Sequential(
+            Residual_Small(32, 64, downsample=True),
+            Residual_Small(64, 64, downsample=False),
+            Residual_Small(64, 64, downsample=False),
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=64*8*8, out_features=classification)
+        )
+
+    def forward(self, x):
+        out = self.conv1(x)
+        out = self.conv2(out)
+        out = self.conv3(out)
+        out = self.conv4(out)
+        out = torch.flatten(out, 1)
+        out = self.classifier(out)
+        
+        return out
 
 class ResNet(nn.Module):
     def __init__(self, layers, classification=10):

@@ -148,6 +148,96 @@ def load_cifar10(dataset_type, distribution, partition, batch_size):
                 else:
                     labels_test += [torch.tensor(1)]
             cifar10_valid.targets = torch.as_tensor(labels_test)
+        
+        elif distribution == 12:    # 중복 레이블 존재
+            if partition == 1:
+                p = [0, 1]
+            elif partition == 2:
+                p = [1, 2]
+            elif partition == 3:
+                p = [2, 3]
+            elif partition == 4:
+                p = [3, 4]
+            elif partition == 5:
+                p = [4, 5]
+            elif partition == 6:
+                p = [5, 6]
+            elif partition == 7:
+                p = [6, 7]
+            elif partition == 8:
+                p = [7, 8]
+            elif partition == 9:
+                p = [8, 9]
+            elif partition == 10:
+                p = [9, 0]
+            else:
+                print("Partition Error!!")
+                return
+            
+            for target in cifar10_train.targets:
+                if target == p[0]:
+                    labels_train += [torch.tensor(0)]
+                elif target == p[1]:
+                    labels_train += [torch.tensor(1)]
+                else:
+                    labels_train += [torch.tensor(2)]
+            cifar10_train.targets = torch.as_tensor(labels_train)
+            
+            for target in cifar10_valid.targets:
+                if target == p[0]:
+                    labels_test += [torch.tensor(0)]
+                elif target == p[1]:
+                    labels_test += [torch.tensor(1)]
+                else:
+                    labels_test += [torch.tensor(2)]
+            cifar10_valid.targets = torch.as_tensor(labels_test)
+            
+        elif distribution == 13:    # 중복 레이블 존재
+            if partition == 1:
+                p = [0, 1, 2]
+            elif partition == 2:
+                p = [1, 2, 3]
+            elif partition == 3:
+                p = [2, 3, 4]
+            elif partition == 4:
+                p = [3, 4, 5]
+            elif partition == 5:
+                p = [4, 5, 6]
+            elif partition == 6:
+                p = [5, 6, 7]
+            elif partition == 7:
+                p = [6, 7, 8]
+            elif partition == 8:
+                p = [7, 8, 9]
+            elif partition == 9:
+                p = [8, 9, 0]
+            elif partition == 10:
+                p = [9, 0, 1]
+            else:
+                print("Partition Error!!")
+                return
+            
+            for target in cifar10_train.targets:
+                if target == p[0]:
+                    labels_train += [torch.tensor(0)]
+                elif target == p[1]:
+                    labels_train += [torch.tensor(1)]
+                elif target == p[2]:
+                    labels_train += [torch.tensor(2)]
+                else:
+                    labels_train += [torch.tensor(3)]
+            cifar10_train.targets = torch.as_tensor(labels_train)
+            
+            for target in cifar10_valid.targets:
+                if target == p[0]:
+                    labels_test += [torch.tensor(0)]
+                elif target == p[1]:
+                    labels_test += [torch.tensor(1)]
+                elif target == p[2]:
+                    labels_test += [torch.tensor(2)]
+                else:
+                    labels_test += [torch.tensor(3)]
+            cifar10_valid.targets = torch.as_tensor(labels_test)
 
         elif distribution == 12:    # 중복 레이블 존재
             if partition == 1:
