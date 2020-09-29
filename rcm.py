@@ -25,15 +25,21 @@ def train_baseline(option):
             _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = models.LeNet5()
+        lenet_size = 32
+    elif option["model"] == "LeNet300100":
+        model = models.LeNet300100()
+        lenet_size = 28
     elif option["model"] == "ConvNet":
         model = models.ConvNet()
     elif option["model"] == "ConvNet_s":
         model = models.ConvNet_s()
+    elif option["model"] == "ResNet20":
+        model = models.ResNet20()
     save_name = _save_name + "_baseline"
     
-    if option["model"] == "LeNet5":
-        train_dl = load_mnist("train", 1, 1, option["batch"])    # (train_dl, valid_dl)
-        test_dl = load_mnist("test", 1, 1, option["batch"])
+    if option["model"] == "LeNet5" or option["model"] == "LeNet300100":
+        train_dl = load_mnist("train", 1, 1, option["batch"], lenet_size)    # (train_dl, valid_dl)
+        test_dl = load_mnist("test", 1, 1, option["batch"], lenet_size)
     else:
         train_dl = load_cifar10("train", 1, 1, option["batch"])
         test_dl = load_cifar10("test", 1, 1, option["batch"])
@@ -58,15 +64,21 @@ def train_rcm(option):
             _save_name = _save_name + "x{:n}".format(option["alpha"])
     elif option["model"] == "LeNet5":
         model = [models.LeNet5(classification=10) for _ in range(option["rcm"])]
+        lenet_size = 32
+    elif option["model"] == "LeNet300100":
+        model = [models.LeNet300100() for _ in range(option["rcm"])]
+        lenet_size = 28
     elif option["model"] == "ConvNet":
         model = [models.ConvNet(classification=10) for _ in range(option["rcm"])]
     elif option["model"] == "ConvNet_s":
         model = [models.ConvNet_s(classification=10) for _ in range(option["rcm"])]
+    elif option["model"] == "ResNet20":
+        model = [models.ResNet20(classification=10) for _ in range(option["rcm"])]
     _save_name = _save_name + "_rcm{:d}".format(option["rcm"])
 
-    if option["model"] == "LeNet5":
-        train_dl = [load_mnist("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])]   # ([train_dl[0], ...], [valid_dl[0], ...])
-        test_dl = load_mnist("test", 1, 1, option["batch"])
+    if option["model"] == "LeNet5" or option["model"] == "LeNet300100":
+        train_dl = [load_mnist("train", option["rcm"], i + 1, option["batch"], lenet_size) for i in range(option["rcm"])]   # ([train_dl[0], ...], [valid_dl[0], ...])
+        test_dl = load_mnist("test", 1, 1, option["batch"], lenet_size)
     else:
         train_dl = [load_cifar10("train", option["rcm"], i + 1, option["batch"]) for i in range(option["rcm"])]
         test_dl = load_cifar10("test", 1, 1, option["batch"])
@@ -560,7 +572,7 @@ def get_args():
     parser.add_argument("--eval", action="store_true")
     parser.add_argument("--rcm", type=int, choices=[1, 2, 5, 10], default="1")
     parser.add_argument("--model_path", type=str, nargs="*")
-    parser.add_argument("--model", choices=['LeNet5', 'ConvNet', 'ConvNet_s', 'VGG16', 'MobileNet'])
+    parser.add_argument("--model", choices=['LeNet5', 'LeNet300100', 'ConvNet', 'ConvNet_s', 'VGG16', 'MobileNet', 'ResNet20'])
     parser.add_argument("--alpha", type=float, choices=[1.0, 0.75, 0.5, 0.25], default="1.0")
     parser.add_argument("--batch", type=int, default="32")
     parser.add_argument("--epoch", type=int, default="300")

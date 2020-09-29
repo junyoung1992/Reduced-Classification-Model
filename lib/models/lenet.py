@@ -34,7 +34,7 @@ class LeNet300100(nn.Module):
         super().__init__()
         
         self.classifier = nn.Sequential(
-            nn.Linear(32*32*1, 300),
+            nn.Linear(28*28*1, 300),
             nn.Tanh(),
             nn.Linear(300, 100),
             nn.Tanh(),
@@ -42,6 +42,6 @@ class LeNet300100(nn.Module):
         )
     
     def forward(self, x):
-        out = torch.flatten(out, 1)
+        out = torch.flatten(x, 1)
         out = self.classifier(out)
         return out

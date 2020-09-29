@@ -5,7 +5,7 @@ import torch
 import torchvision, PIL
 import numpy as np
 
-def load_mnist(dataset_type, distribution, partition, batch_size):
+def load_mnist(dataset_type, distribution, partition, batch_size, size):
     '''
         dataset_type:
             "train" -> return train_loader, valid_loader
@@ -37,20 +37,34 @@ def load_mnist(dataset_type, distribution, partition, batch_size):
     mnist_mean /= 255.0
     mnist_std /= 255.0
     
-    transform = {
-        "train": torchvision.transforms.Compose([
-            torchvision.transforms.Pad(2),
-            # torchvision.transforms.RandomCrop(32, padding=4),
-            # torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize((mnist_mean, ), (mnist_std, )),
-        ]),
-        "test": torchvision.transforms.Compose([
-            torchvision.transforms.Pad(2),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize((mnist_mean, ), (mnist_std, )),
-        ]),
-    }
+    if size == 32:
+        transform = {
+            "train": torchvision.transforms.Compose([
+                torchvision.transforms.Pad(2),
+                # torchvision.transforms.RandomCrop(32, padding=4),
+                # torchvision.transforms.RandomHorizontalFlip(),
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize((mnist_mean, ), (mnist_std, )),
+            ]),
+            "test": torchvision.transforms.Compose([
+                torchvision.transforms.Pad(2),
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize((mnist_mean, ), (mnist_std, )),
+            ]),
+        }
+    elif size == 28:
+        transform = {
+            "train": torchvision.transforms.Compose([
+                # torchvision.transforms.RandomCrop(32, padding=4),
+                # torchvision.transforms.RandomHorizontalFlip(),
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize((mnist_mean, ), (mnist_std, )),
+            ]),
+            "test": torchvision.transforms.Compose([
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize((mnist_mean, ), (mnist_std, )),
+            ]),
+        }
     
     if dataset_type == "train":
         mnist_train = torchvision.datasets.MNIST("./data", train=True, transform=transform["train"], download=True)
